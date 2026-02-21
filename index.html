@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Image Optimizer for Shopify</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- JSZip via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Phosphor Icons for modern iconography -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i class="ph-fill ph-aperture"></i>
+                <h1>Storefront Optimizer Pro</h1>
+            </div>
+            <p class="header-subtitle">Optimización por lotes nivel empresarial para Shopify</p>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="dashboard">
+            <!-- Left Side: Configuration Panel -->
+            <aside class="config-panel">
+                <h2>Configuración de Salida</h2>
+
+                <div class="form-group">
+                    <label for="usage"><i class="ph ph-bounding-box"></i> Dimensiones Objetivo</label>
+                    <select id="usage">
+                        <option value="product" data-width="2048" data-height="2048">Producto (2048x2048)</option>
+                        <option value="collection" data-width="1024" data-height="1024">Colección (1024x1024)</option>
+                        <option value="banner" data-width="1920" data-height="1080">Banner / Hero (1920x1080)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="format"><i class="ph ph-file-image"></i> Formato de Salida</label>
+                    <select id="format">
+                        <option value="webp">WebP (Recomendado)</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="png">PNG (Sin pérdidas, más pesado)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="fit-mode"><i class="ph ph-crop"></i> Modo de Ajuste</label>
+                    <div class="radio-group" id="fit-mode">
+                        <label class="radio-card">
+                            <input type="radio" name="fitMode" value="cover" checked>
+                            <span class="radio-content">
+                                <i class="ph ph-corners-out"></i>
+                                <span>Recortar (Cover)</span>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="fitMode" value="contain">
+                            <span class="radio-content">
+                                <i class="ph ph-corners-in"></i>
+                                <span>Ajustar (Contain)</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="watermark-input"><i class="ph ph-drop"></i> Marca de Agua (Opcional)</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="watermark-input" accept="image/png">
+                        <div class="file-input-faux">
+                            <span id="watermark-name">Ningún archivo seleccionado</span>
+                            <button class="btn-secondary" id="btn-watermark">Elegir PNG</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="seo-suffix"><i class="ph ph-magnifying-glass"></i> Sufijo de Marca SEO
+                        (Opcional)</label>
+                    <input type="text" id="seo-suffix" placeholder="ej. mi-tienda">
+                    <small>Se limpiará el nombre original y se añadirá al final.</small>
+                </div>
+
+                <!-- Process Button & Progress -->
+                <div class="action-panel">
+                    <button class="btn-primary" id="btn-process" disabled>
+                        <i class="ph-bold ph-lightning"></i>
+                        <span id="process-text">Procesar y Previsualizar</span>
+                    </button>
+
+                    <button class="btn-primary hidden" id="btn-download-zip"
+                        style="background-color: var(--color-primary-hover);">
+                        <i class="ph-bold ph-download-simple"></i>
+                        <span id="download-text">Descargar ZIP</span>
+                    </button>
+
+                    <div class="progress-container hidden" id="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <p class="progress-text" id="progress-text">Preparando...</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Side: Gallery & Dropzone -->
+            <section class="gallery-panel">
+                <div class="dropzone" id="dropzone">
+                    <div class="dropzone-content">
+                        <div class="dropzone-icon">
+                            <i class="ph ph-upload-simple"></i>
+                        </div>
+                        <h3>Arrastra y suelta tus imágenes aquí</h3>
+                        <p>Soporta JPG, PNG y WebP</p>
+                        <button class="btn-secondary" id="btn-browse">Explorar Archivos</button>
+                        <input type="file" id="file-input" multiple accept="image/jpeg, image/png, image/webp" hidden>
+                    </div>
+                </div>
+
+                <div class="gallery-header">
+                    <h2>Imágenes Cargadas <span class="badge" id="image-count">0</span></h2>
+                    <button class="btn-text btn-danger hidden" id="btn-clear-all"><i class="ph ph-trash"></i> Limpiar
+                        Todo</button>
+                </div>
+
+                <div class="thumbnail-grid" id="thumbnail-grid">
+                    <!-- Thumbnails will be injected here via JS -->
+                    <div class="empty-state" id="empty-state">
+                        <i class="ph ph-images"></i>
+                        <p>No hay imágenes seleccionadas.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal hidden" id="preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Vista Previa de Imágenes</h2>
+                <button class="btn-text" id="btn-close-modal"><i class="ph ph-x"
+                        style="font-size: 1.5rem;"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-grid" id="preview-grid">
+                    <!-- Preview items injected here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="btn-cancel-download">Cancelar</button>
+                <button class="btn-primary" id="btn-confirm-download">
+                    <i class="ph-bold ph-download-simple"></i>
+                    Descargar ZIP
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Logic -->
+    <script src="script.js"></script>
+</body>
+
+</html>
