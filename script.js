@@ -454,6 +454,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Draw Image
                     ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
+                    // Apply Sharpening Filter
+                    applySharpening(ctx, tWidth, tHeight, 0.5);
+
                     // Draw Watermark
                     if (watermarkImg) {
                         ctx.globalAlpha = 0.5;
@@ -512,5 +515,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 compressLoop(canvas, mimeType, nextQuality, resolve, reject);
             }
         }, mimeType, quality);
+    }
+
+    function applySharpening(ctx, w, h, mix) {
+        // A subtle unsharp mask filter to restore crispness after resizing
+        const weights = [
+            0, -1, 0,
+            -1, 5, -1,
+            0, -1, 0
+        ];
+        const katet = Math.round(Math.sqrt(weights.length));
+        const half = (katet * 0.5) | 0;
+
+        const srcData = ctx.getImageData(0, 0, w, h);
+        const srcBuff = srcData.data;
+
+        // We need a separate destination buffer to avoid bleeding pixels during convolution
+        const dstData = ctx.createImageData(w, h);
+        const dstBuff = dstData.data;
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const dstOff = (y * w + x) * 4;
+                let r = 0, g = 0, b = 0;
+
+                // Preserve transparency and don't sharpen invisible pixels
+                if (srcBuff[dstOff + 3] === 0) {
+                    dstBuff[dstOff + 3] = 0;
+                    continue;
+                }
+
+                for (let cy = 0; cy < katet; cy++) {
+                    for (let cx = 0; cx < katet; cx++) {
+                        const scy = y + cy - half;
+                        const scx = x + cx - half;
+
+                        if (scy >= 0 && scy < h && scx >= 0 && scx < w) {
+                            const srcOff = (scy * w + scx) * 4;
+                            const wt = weights[cy * katet + cx];
+
+                            r += srcBuff[srcOff] * wt;
+                            g += srcBuff[srcOff + 1] * wt;
+                            b += srcBuff[srcOff + 2] * wt;
+                        }
+                    }
+                }
+
+                dstBuff[dstOff] = r * mix + srcBuff[dstOff] * (1 - mix);
+                dstBuff[dstOff + 1] = g * mix + srcBuff[dstOff + 1] * (1 - mix);
+                dstBuff[dstOff + 2] = b * mix + srcBuff[dstOff + 2] * (1 - mix);
+                dstBuff[dstOff + 3] = srcBuff[dstOff + 3];
+            }
+        }
+        ctx.putImageData(dstData, 0, 0);
     }
 });
